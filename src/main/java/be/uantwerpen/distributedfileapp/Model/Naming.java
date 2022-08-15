@@ -4,9 +4,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Naming {
-    private final Map<Integer, String> nodeMap = new ConcurrentHashMap<>();
+    private static final Map<Integer, String> nodeMap = new ConcurrentHashMap<>();
 
-    public Map<Integer, String> getNodeMap() {
+    public static Map<Integer, String> getNodeMap() {
         return nodeMap;
     }
 
