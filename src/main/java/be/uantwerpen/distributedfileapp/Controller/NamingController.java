@@ -2,9 +2,9 @@ package be.uantwerpen.distributedfileapp.Controller;
 
 import be.uantwerpen.distributedfileapp.Model.Naming;
 import be.uantwerpen.distributedfileapp.Service.NamingService;
+import be.uantwerpen.distributedfileapp.Service.NodeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -16,7 +16,9 @@ import java.util.Map;
 @RestController
 public class NamingController {
 
-    NamingService namingService;
+    NamingService namingService = new NamingService();
+
+    NodeService nodeService = new NodeService();
     Map<Integer, String> nodeMap = Naming.getNodeMap();
 
     @RequestMapping(value = {"/file-owner"}, method = RequestMethod.GET)
@@ -45,7 +47,9 @@ public class NamingController {
 
         saveMap2LocalDisk(nodeMap);
 
-        return "Node Added!";
+        // ====== Init/ing new Node =======
+        String newNodeName = nodeService.initNewNode(nodeName, request.getRemoteAddr()).getName();
+        return "Node w/ name: "+ newNodeName +" Added!";
     }
 
     @RequestMapping(value = {"/del-node"}, method = RequestMethod.DELETE)
