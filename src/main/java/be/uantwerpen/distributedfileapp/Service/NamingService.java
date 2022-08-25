@@ -12,7 +12,7 @@ public class NamingService {
     public Integer getFileOwner(Integer hashedName){
 
         int diff = 32768;// Biggest possible key difference
-        int ownerID = 0; // ID of the file owner
+        int ownerID = 0; // IDof the file owner
 
         Map<Integer, String> N = new ConcurrentHashMap<>();
 

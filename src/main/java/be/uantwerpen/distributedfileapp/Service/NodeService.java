@@ -4,17 +4,18 @@ import be.uantwerpen.distributedfileapp.Model.Naming;
 import be.uantwerpen.distributedfileapp.Model.Node;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class NodeService {
 
     public Node initNewNode(String nodeName, String addr){
 
-        List<File> files = new ArrayList<>();
-
-        File file = new File("files/lab3.pdf");
-        files.add(file);
+        // Adding local files to node's file List
+        List<File> files = Arrays.stream(
+                (Objects.requireNonNull(new File("files").listFiles()))
+        ).toList();
 
         return new Node(
                 nodeName, addr, files,
