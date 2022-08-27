@@ -2,12 +2,10 @@ package be.uantwerpen.distributedfileapp.Controller;
 
 import be.uantwerpen.distributedfileapp.Model.Naming;
 import be.uantwerpen.distributedfileapp.Service.NamingService;
-import be.uantwerpen.distributedfileapp.Service.NodeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
@@ -19,8 +17,6 @@ import java.util.Map;
 public class NamingController {
 
     NamingService namingService = new NamingService();
-
-    NodeService nodeService = new NodeService();
     Map<Integer, String> nodeMap = Naming.getNodeMap();
 
     @RequestMapping(value = {"/file-owner"}, method = RequestMethod.GET)
@@ -37,7 +33,6 @@ public class NamingController {
     @RequestMapping(value = {"/add-node"}, method = RequestMethod.POST)
     public String addNode2Topology(
             /*@RequestParam(value = "nodeName") String nodeName,*/
-            HttpServletRequest request
     ) throws IOException {
 
         DatagramPacket pkt = new DatagramPacket(new byte[255], 255);
