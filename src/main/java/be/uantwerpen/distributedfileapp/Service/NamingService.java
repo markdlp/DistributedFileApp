@@ -1,13 +1,20 @@
 package be.uantwerpen.distributedfileapp.Service;
 
 import be.uantwerpen.distributedfileapp.Model.Naming;
+import lombok.extern.slf4j.Slf4j;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class NamingService {
 
     Map<Integer, String> nodeMap = Naming.getNodeMap();
+
+    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
+    private static final Date date = new Date();
 
     public Integer getFileOwner(Integer hashedName){
 
@@ -30,5 +37,22 @@ public class NamingService {
                 ownerID = nodeKey;
             }
         }return ownerID;
+    }
+
+    public String addNode(String message) {
+
+        // using delimiter as '@' cause
+        String nodeName = message.split("@")[0];
+        String ip = message.split("@")[1];
+
+        log.info(formatter.format(date)
+                + " Request to add Node: " + nodeName
+                + " Ip: " + ip + " And ID: " + Naming.getHash(nodeName)
+        );
+
+        // add node if it doesn't exist already
+        nodeMap.putIfAbsent((int)Naming.getHash(nodeName), ip);
+
+        return Integer.toString(nodeMap.size());
     }
 }
