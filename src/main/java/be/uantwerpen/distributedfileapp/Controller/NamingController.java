@@ -4,19 +4,19 @@ import be.uantwerpen.distributedfileapp.Model.Naming;
 import be.uantwerpen.distributedfileapp.Service.NamingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Slf4j
 @RestController
 public class NamingController {
 
-    NamingService namingService;
+    NamingService namingService = new NamingService();
     Map<Integer, String> nodeMap = Naming.getNodeMap();
 
     @RequestMapping(value = {"/file-owner"}, method = RequestMethod.GET)
@@ -32,19 +32,39 @@ public class NamingController {
 
     @RequestMapping(value = {"/add-node"}, method = RequestMethod.POST)
     public String addNode2Topology(
-            @RequestParam(value = "nodeName") String nodeName,
-            HttpServletRequest request
+            /*@RequestParam(value = "nodeName") String nodeName,*/
     ) throws IOException {
-        log.info("Adding node: " + nodeName
-                + " with ID: " + Naming.getHash(nodeName) + " ...if absent!"
+
+        DatagramPacket pkt = new DatagramPacket(new byte[255], 255);
+
+        try(MulticastSocket udpSocket = new MulticastSocket(4994)){
+
+            udpSocket.joinGroup(InetAddress.getByName(/*request.getRemoteAddr()*/ "224.0.0.1"));
+
+            udpSocket.receive(pkt);
+
+            udpSocket.leaveGroup(InetAddress.getByName(/*request.getRemoteAddr()*/ "224.0.0.1"));
+        }
+
+        log.info("[Multicast] Received: "
+                + new String(pkt.getData())
+                + " Offset: " + pkt.getOffset()
+                + " Length: " + pkt.getLength()
         );
-        nodeMap.putIfAbsent(
-                (int) Naming.getHash(nodeName),
-                request.getRemoteAddr()
+
+        String numOfNodes = namingService.addNode(new String(pkt.getData())) + '@';
+
+        pkt = new DatagramPacket(
+                numOfNodes.getBytes(StandardCharsets.UTF_8), numOfNodes.length(),
+                new InetSocketAddress(InetAddress.getLocalHost(), 1337)
         );
+
+        try (DatagramSocket resp = new DatagramSocket()){resp.send(pkt);}
 
         saveMap2LocalDisk(nodeMap);
 
+        // ====== Init/ing new Node =======
+        //nodeService.initNewNode(nodeName, request.getRemoteAddr());
         return "Node Added!";
     }
 

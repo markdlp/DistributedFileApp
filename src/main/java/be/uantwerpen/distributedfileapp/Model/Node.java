@@ -1,14 +1,15 @@
 package be.uantwerpen.distributedfileapp.Model;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
 
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
+@AllArgsConstructor
 @Getter @Setter
 public class Node {
 
