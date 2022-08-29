@@ -19,7 +19,10 @@ public class NodeController {
 
     NodeService nodeService = new NodeService();
 
-    Node node;
+    // Create a node that doesn't exit in the topology yet
+    Node node = nodeService.initNewNode("tmp", "localhost",1);
+
+    public NodeController() throws IOException {}
 
     @RequestMapping(value = {"/discovery/cast-new-node"}, method = RequestMethod.POST)
     public String multicastNewNode(

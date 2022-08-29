@@ -36,17 +36,18 @@ public class NodeService {
 
             int previousID = 32768, nextID = 32768;
 
-            ServerSocket serverSocket = new ServerSocket(4995);
+            byte[] message = new byte[255];
 
-            for(int i = 0; i < numOfNodes; i++) try (
-                    Socket s = serverSocket.accept()
+            DatagramPacket pkt = new DatagramPacket(
+                    message, message.length
+            );
+
+            for(int i = 0; i < numOfNodes - 1; i++) try (
+                    DatagramSocket rcvSckt = new DatagramSocket(1337)
             ) {
-                InputStreamReader in = new InputStreamReader(s.getInputStream());
-                BufferedReader bf = new BufferedReader(in);
+                rcvSckt.receive(pkt);
 
-                String fromNode = bf.readLine();
-
-                s.close();
+                String fromNode = new String(pkt.getData());
 
                 int fromNodeId = Integer.parseInt(fromNode.split("@")[0]);
                 int fromNodePrevOrNextId = Integer.parseInt(fromNode.split("@")[1]);
@@ -60,8 +61,6 @@ public class NodeService {
                     ) nextID = fromNodeId;
                 }
             }
-
-            serverSocket.close();
 
             return new Node(nodeName, addr, files, previousID, nextID);
         }
@@ -90,28 +89,39 @@ public class NodeService {
         Integer newNodeHash = (int) Naming.getHash(newNode);
         Integer currentID = (int) Naming.getHash(currentNode.getName());
 
-        if(currentID < newNodeHash && currentNode.getNextID() > newNodeHash){
+
+        if((currentID < newNodeHash && currentNode.getNextID() > newNodeHash)
+                || currentID.equals(currentNode.getNextID())
+        ){
             currentNode.setNextID(newNodeHash);
 
-            Socket s = new Socket(addr, 4995);
+            String message = String.valueOf(currentID) + '@' + currentNode.getNextID() + '@';
 
-            PrintWriter pr = new PrintWriter(s.getOutputStream());
-            InputStreamReader in = new InputStreamReader(s.getInputStream());
+            DatagramPacket pkt = new DatagramPacket(
+                    message.getBytes(StandardCharsets.UTF_8), message.length(),
+                    new InetSocketAddress(InetAddress.getByName(addr), 1337)
+            );
 
-            pr.println(String.valueOf(currentID) + '@' + currentNode.getNextID() + '@');
-            pr.flush(); s.close();
+            log.info("Sending parameters to new node");
+
+            try (DatagramSocket resp = new DatagramSocket()){resp.send(pkt);}
         }
 
-        if(currentNode.getPreviousID() < newNodeHash && currentID > newNodeHash){
+        if((currentNode.getPreviousID() < newNodeHash && currentID > newNodeHash)
+                || currentID.equals(currentNode.getPreviousID())
+        ){
             currentNode.setPreviousID(newNodeHash);
 
-            Socket s = new Socket(addr, 4995);
+            String message = String.valueOf(currentID) + '@' + currentNode.getPreviousID() + '@';
 
-            PrintWriter pr = new PrintWriter(s.getOutputStream());
-            InputStreamReader in = new InputStreamReader(s.getInputStream());
+            DatagramPacket pkt = new DatagramPacket(
+                    message.getBytes(StandardCharsets.UTF_8), message.length(),
+                    new InetSocketAddress(InetAddress.getByName(addr), 1337)
+            );
 
-            pr.println(String.valueOf(currentID) + '@' + currentNode.getPreviousID() + '@');
-            pr.flush(); s.close();
+            log.info("Sending parameters to new node");
+
+            try (DatagramSocket resp = new DatagramSocket()){resp.send(pkt);}
         }
 
         return currentNode;

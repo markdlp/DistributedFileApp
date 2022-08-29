@@ -54,9 +54,11 @@ public class NamingController {
 
         String numOfNodes = namingService.addNode(new String(pkt.getData())) + '@';
 
+        String newNodeAddr = new String(pkt.getData()).split("@")[1];
+
         pkt = new DatagramPacket(
                 numOfNodes.getBytes(StandardCharsets.UTF_8), numOfNodes.length(),
-                new InetSocketAddress(InetAddress.getLocalHost(), 1337)
+                new InetSocketAddress(InetAddress.getByName(newNodeAddr), 1337)
         );
 
         try (DatagramSocket resp = new DatagramSocket()){resp.send(pkt);}
