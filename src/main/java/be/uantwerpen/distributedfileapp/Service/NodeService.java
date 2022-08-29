@@ -17,6 +17,8 @@ public class NodeService {
 
     Map<Integer, String> nodeMap = Naming.getNodeMap();
 
+    NamingService namingService = new NamingService();
+
     public Node initNewNode(
             String nodeName, String addr, Integer numOfNodes
     ) throws IOException {
@@ -142,10 +144,29 @@ public class NodeService {
         return "Shutdown Proc Complete";
     }
 
-    public String failure(Integer ID){
+    public String failure(Integer ID)throws IOException{
 
+        // Sending the id of the next node to the previous node
+        byte[] message =
+                (String.valueOf(namingService.getNextId(ID)) + '@').getBytes(StandardCharsets.UTF_8);
 
+        DatagramPacket pkt = new DatagramPacket(
+                message, message.length,
+                InetAddress.getByName(nodeMap.get(namingService.getPrevId(ID))), 4994
+        );
 
+        try (DatagramSocket rspSock = new DatagramSocket()){ rspSock.send(pkt); }
+
+        // Send the id of the previous node to the next node
+        message =
+                (String.valueOf(namingService.getPrevId(ID)) + '@').getBytes(StandardCharsets.UTF_8);
+
+        pkt = new DatagramPacket(
+                message, message.length,
+                InetAddress.getByName(nodeMap.get(namingService.getNextId(ID))), 4994
+        );
+
+        try (DatagramSocket rspSock = new DatagramSocket()){ rspSock.send(pkt); }
 
         return "Failure Proc Completed for host: "+ nodeMap.remove(ID);
     }
