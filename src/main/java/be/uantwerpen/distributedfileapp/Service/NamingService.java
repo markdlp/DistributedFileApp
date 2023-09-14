@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,5 +55,41 @@ public class NamingService {
         nodeMap.putIfAbsent((int)Naming.getHash(nodeName), ip);
 
         return Integer.toString(nodeMap.size());
+    }
+
+    public Integer getNextId(Integer Id) {
+        int tmp = 0;
+
+        for (Map.Entry<Integer, String> entry : nodeMap.entrySet()) {
+            if (Id > entry.getKey() && tmp < entry.getKey()) tmp = entry.getKey();
+        }
+        if (tmp == 0) tmp = getBiggestKey();
+        return tmp;
+    }
+
+    private int getBiggestKey() {
+        int tmp = 0;
+        for (Map.Entry<Integer, String> entry : nodeMap.entrySet()) {
+            if (entry.getKey() > tmp) tmp = entry.getKey();
+        }
+        return tmp;
+    }
+
+    public Integer getPrevId(Integer Id) {
+        int tmp = 32768;
+
+        for (Map.Entry<Integer, String> entry : nodeMap.entrySet()) {
+            if (Id < entry.getKey() && tmp > entry.getKey()) tmp = entry.getKey();
+        }
+        if (tmp == 32768) tmp = getSmallestKey();
+        return tmp;
+    }
+
+    private int getSmallestKey() {
+        int tmp = 32768;
+        for (Map.Entry<Integer, String> entry : nodeMap.entrySet()) {
+            if (entry.getKey() < tmp) tmp = entry.getKey();
+        }
+        return tmp;
     }
 }

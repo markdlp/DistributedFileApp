@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.UnknownHostException;
+import java.net.*;
 
 @Slf4j
 @RestController
@@ -22,7 +19,10 @@ public class NodeController {
 
     NodeService nodeService = new NodeService();
 
-    Node node;
+    // Create a node that doesn't exit in the topology yet
+    Node node = nodeService.initNewNode("tmp", "localhost",1);
+
+    public NodeController() throws IOException {}
 
     @RequestMapping(value = {"/discovery/cast-new-node"}, method = RequestMethod.POST)
     public String multicastNewNode(
@@ -67,15 +67,36 @@ public class NodeController {
                 + " prevID: " + node.getPreviousID();
     }
 
-    @RequestMapping(value = {"/shutdown"}, method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/shutdown/self"}, method = RequestMethod.DELETE)
     public String shutDown(
             //@RequestParam(value = "nodeId") Integer nodeId
     ) throws IOException {return nodeService.shutDown(node);}
 
+    @RequestMapping(value = {"/shutdown/updateParams", "/failure"}, method = RequestMethod.PUT)
+    public String updateParamsOnNodeShutdown() throws IOException{
+
+        byte[] newParams = new byte[255];
+
+        DatagramPacket pkt = new DatagramPacket(newParams, newParams.length);
+
+        try ( DatagramSocket rcvSckt = new DatagramSocket(4994)) {
+            rcvSckt.receive(pkt);
+        }
+
+        int newNextOrPrevId = Integer.parseInt(new String(pkt.getData()).split("@")[0]);
+
+        if(newNextOrPrevId > Naming.getHash(node.getName()))
+            node.setNextID(newNextOrPrevId);
+        else node.setPreviousID(newNextOrPrevId);
+
+        return "[Node Parameters updated]: nextID: " + node.getNextID()
+                + " prevID: " + node.getPreviousID();
+    }
+
     @RequestMapping(value = {"/checkIfAlive"}, method = RequestMethod.GET)
     public String isReachable(
             @RequestParam(value = "nodeName") String nodeName
-    ) throws UnknownHostException {
+    ) throws IOException {
 
         InetAddress inetAddress = InetAddress.getByName(
                 Naming.getNodeMap().get((int)Naming.getHash(nodeName))

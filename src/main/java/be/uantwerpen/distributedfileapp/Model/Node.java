@@ -2,6 +2,7 @@ package be.uantwerpen.distributedfileapp.Model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 
 //@RequiredArgsConstructor
+@NoArgsConstructor
 @AllArgsConstructor
 @Getter @Setter
 public class Node {

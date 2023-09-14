@@ -17,6 +17,8 @@ public class NodeService {
 
     Map<Integer, String> nodeMap = Naming.getNodeMap();
 
+    NamingService namingService = new NamingService();
+
     public Node initNewNode(
             String nodeName, String addr, Integer numOfNodes
     ) throws IOException {
@@ -34,17 +36,18 @@ public class NodeService {
 
             int previousID = 32768, nextID = 32768;
 
-            ServerSocket serverSocket = new ServerSocket(4995);
+            byte[] message = new byte[255];
 
-            for(int i = 0; i < numOfNodes; i++) try (
-                    Socket s = serverSocket.accept()
+            DatagramPacket pkt = new DatagramPacket(
+                    message, message.length
+            );
+
+            for(int i = 0; i < numOfNodes - 1; i++) try (
+                    DatagramSocket rcvSckt = new DatagramSocket(1337)
             ) {
-                InputStreamReader in = new InputStreamReader(s.getInputStream());
-                BufferedReader bf = new BufferedReader(in);
+                rcvSckt.receive(pkt);
 
-                String fromNode = bf.readLine();
-
-                s.close();
+                String fromNode = new String(pkt.getData());
 
                 int fromNodeId = Integer.parseInt(fromNode.split("@")[0]);
                 int fromNodePrevOrNextId = Integer.parseInt(fromNode.split("@")[1]);
@@ -58,8 +61,6 @@ public class NodeService {
                     ) nextID = fromNodeId;
                 }
             }
-
-            serverSocket.close();
 
             return new Node(nodeName, addr, files, previousID, nextID);
         }
@@ -88,28 +89,39 @@ public class NodeService {
         Integer newNodeHash = (int) Naming.getHash(newNode);
         Integer currentID = (int) Naming.getHash(currentNode.getName());
 
-        if(currentID < newNodeHash && currentNode.getNextID() > newNodeHash){
+
+        if((currentID < newNodeHash && currentNode.getNextID() > newNodeHash)
+                || currentID.equals(currentNode.getNextID())
+        ){
             currentNode.setNextID(newNodeHash);
 
-            Socket s = new Socket(addr, 4995);
+            String message = String.valueOf(currentID) + '@' + currentNode.getNextID() + '@';
 
-            PrintWriter pr = new PrintWriter(s.getOutputStream());
-            InputStreamReader in = new InputStreamReader(s.getInputStream());
+            DatagramPacket pkt = new DatagramPacket(
+                    message.getBytes(StandardCharsets.UTF_8), message.length(),
+                    new InetSocketAddress(InetAddress.getByName(addr), 1337)
+            );
 
-            pr.println(String.valueOf(currentID) + '@' + currentNode.getNextID() + '@');
-            pr.flush(); s.close();
+            log.info("Sending parameters to new node");
+
+            try (DatagramSocket resp = new DatagramSocket()){resp.send(pkt);}
         }
 
-        if(currentNode.getPreviousID() < newNodeHash && currentID > newNodeHash){
+        if((currentNode.getPreviousID() < newNodeHash && currentID > newNodeHash)
+                || currentID.equals(currentNode.getPreviousID())
+        ){
             currentNode.setPreviousID(newNodeHash);
 
-            Socket s = new Socket(addr, 4995);
+            String message = String.valueOf(currentID) + '@' + currentNode.getPreviousID() + '@';
 
-            PrintWriter pr = new PrintWriter(s.getOutputStream());
-            InputStreamReader in = new InputStreamReader(s.getInputStream());
+            DatagramPacket pkt = new DatagramPacket(
+                    message.getBytes(StandardCharsets.UTF_8), message.length(),
+                    new InetSocketAddress(InetAddress.getByName(addr), 1337)
+            );
 
-            pr.println(String.valueOf(currentID) + '@' + currentNode.getPreviousID() + '@');
-            pr.flush(); s.close();
+            log.info("Sending parameters to new node");
+
+            try (DatagramSocket resp = new DatagramSocket()){resp.send(pkt);}
         }
 
         return currentNode;
@@ -142,10 +154,29 @@ public class NodeService {
         return "Shutdown Proc Complete";
     }
 
-    public String failure(Integer ID){
+    public String failure(Integer ID)throws IOException{
 
+        // Sending the id of the next node to the previous node
+        byte[] message =
+                (String.valueOf(namingService.getNextId(ID)) + '@').getBytes(StandardCharsets.UTF_8);
 
+        DatagramPacket pkt = new DatagramPacket(
+                message, message.length,
+                InetAddress.getByName(nodeMap.get(namingService.getPrevId(ID))), 4994
+        );
 
+        try (DatagramSocket rspSock = new DatagramSocket()){ rspSock.send(pkt); }
+
+        // Send the id of the previous node to the next node
+        message =
+                (String.valueOf(namingService.getPrevId(ID)) + '@').getBytes(StandardCharsets.UTF_8);
+
+        pkt = new DatagramPacket(
+                message, message.length,
+                InetAddress.getByName(nodeMap.get(namingService.getNextId(ID))), 4994
+        );
+
+        try (DatagramSocket rspSock = new DatagramSocket()){ rspSock.send(pkt); }
 
         return "Failure Proc Completed for host: "+ nodeMap.remove(ID);
     }
