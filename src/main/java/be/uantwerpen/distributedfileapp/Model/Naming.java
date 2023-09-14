@@ -12,7 +12,7 @@ public class Naming {
 
     public static short getHash(String message){
 
-        // Choosing 32479 instead of 32768 because a prime number spreads the distribution of hash
+        // Choosing 32479 instead of 32768 because a prime number spreads the distribution of hashsn
         // values better -> [0, 32479] : 289 values left out
         int tmp = (message.hashCode() % 32479);
 
